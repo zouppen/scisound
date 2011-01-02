@@ -4,7 +4,28 @@ import SoxDatParser (parseDatFromFile, time, left)
 import Derivate
 import Helpers (average, sublists)
 
--- |Sound bitstream is 0 initially and has 5% threshold.
+data DecodeOptions =
+  DecodeOptions { initialBit :: Bool   -- ^ Stream starts with 0 or 1.
+                , threshold  :: Double -- ^ Change in level which toggles bit value.
+                , bitLength  :: Double -- ^ Length of a bit in samples.
+                , phase      :: Double -- ^ Samples to skip in the beginning.
+                }
+
+defaultOptions = DecodeOptions { initialBit = False
+                               , threshold  = 0.03
+                               , bitLength  = 0
+                               , phase      = 0
+                               }
+
+-- |Decodes a given stream with given parameters.
+decode :: DecodeOptions -> [Double] -> (Double,[Bool])
+decode o samples = (correctness,bits)
+  where stream = quantize (comparator (threshold o)) (initialBit o) samples
+        bitsT = trimBits $ decodeBits $ groupBits (bitLength o) (phase o) stream
+        bits = map fst bitsT
+        correctness = average $ map snd bitsT
+
+-- |Sound bitstream is 0 initially and has 3% threshold.
 soundBitstream = quantize (comparator 0.03) False
 
 -- |Group bits from a bitstream to groups of given length and starting offset.
